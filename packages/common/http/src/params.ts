@@ -6,6 +6,11 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {RuntimeError} from '../../../core/src/errors';
+import {RuntimeErrorCode} from '../../src/errors';
+
+const NG_DEV_MODE = typeof ngDevMode === 'undefined' || ngDevMode;
+
 /**
  * A codec for encoding and decoding parameters in URLs.
  *
@@ -157,7 +162,9 @@ export class HttpParams {
     this.encoder = options.encoder || new HttpUrlEncodingCodec();
     if (!!options.fromString) {
       if (!!options.fromObject) {
-        throw new Error(`Cannot specify both fromString and fromObject.`);
+        throw new RuntimeError(
+            RuntimeErrorCode.INVALID_HTTP_PARAMS,
+            NG_DEV_MODE && 'Cannot specify both fromString and fromObject.');
       }
       this.map = paramParser(options.fromString, this.encoder);
     } else if (!!options.fromObject) {
