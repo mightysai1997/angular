@@ -40,6 +40,8 @@ export class Generator {
       hashTable: withOrderedKeys(unorderedHashTable),
       navigationUrls: processNavigationUrls(this.baseHref, config.navigationUrls),
       navigationRequestStrategy: config.navigationRequestStrategy ?? 'performance',
+      applicationMaxAge: config.applicationMaxAge ? parseDurationToMs(config.applicationMaxAge) :
+                                                    undefined,
     };
   }
 

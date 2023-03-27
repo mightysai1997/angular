@@ -665,18 +665,19 @@ export class Driver implements Debuggable, UpdateSource {
     // NOTE: For navigation requests, we care about the `resultingClientId`. If it is undefined or
     //       the empty string (which is the case for sub-resource requests), we look at `clientId`.
     const clientId = event.resultingClientId || event.clientId;
+    let assignedVersion: AppVersion;
     if (clientId) {
       // Check if there is an assigned client id.
       if (this.clientVersionMap.has(clientId)) {
         // There is an assignment for this client already.
         const hash = this.clientVersionMap.get(clientId)!;
-        let appVersion = this.lookupVersionByHash(hash, 'assignVersion');
+        assignedVersion = this.lookupVersionByHash(hash, 'assignVersion');
 
         // Ordinarily, this client would be served from its assigned version. But, if this
         // request is a navigation request, this client can be updated to the latest
         // version immediately.
         if (this.state === DriverReadyState.NORMAL && hash !== this.latestHash &&
-            appVersion.isNavigationRequest(event.request)) {
+            assignedVersion.isNavigationRequest(event.request)) {
           // Update this client to the latest version immediately.
           if (this.latestHash === null) {
             throw new Error(`Invariant violated (assignVersion): latestHash was null`);
@@ -687,11 +688,10 @@ export class Driver implements Debuggable, UpdateSource {
             await this.updateClient(client);
           }
 
-          appVersion = this.lookupVersionByHash(this.latestHash, 'assignVersion');
+          assignedVersion = this.lookupVersionByHash(this.latestHash, 'assignVersion');
         }
 
         // TODO: make sure the version is valid.
-        return appVersion;
       } else {
         // This is the first time this client ID has been seen. Whether the SW is in a
         // state to handle new clients depends on the current readiness state, so check
@@ -729,7 +729,7 @@ export class Driver implements Debuggable, UpdateSource {
         await this.sync();
 
         // Return the latest `AppVersion`.
-        return this.lookupVersionByHash(this.latestHash, 'assignVersion');
+        assignedVersion = this.lookupVersionByHash(this.latestHash, 'assignVersion');
       }
     } else {
       // No client ID was associated with the request. This must be a navigation request
@@ -747,8 +747,17 @@ export class Driver implements Debuggable, UpdateSource {
       }
 
       // Return the latest `AppVersion`.
-      return this.lookupVersionByHash(this.latestHash, 'assignVersion');
+      assignedVersion = this.lookupVersionByHash(this.latestHash, 'assignVersion');
     }
+
+    // If the (presumably latest) app is expired, don't use it.
+    const age = this.adapter.time - assignedVersion.manifest.timestamp;
+    const maxAge = assignedVersion.manifest.applicationMaxAge;
+    if (maxAge !== undefined && age > maxAge) {
+      return null;
+    }
+
+    return assignedVersion;
   }
 
   /**

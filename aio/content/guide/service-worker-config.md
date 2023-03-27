@@ -385,7 +385,7 @@ A request is considered to be a navigation request if:
 
 <div class="alert is-helpful">
 
-To configure whether navigation requests are sent through to the network or not, see the [navigationRequestStrategy](#navigation-request-strategy) section.
+To configure whether navigation requests are sent through to the network or not, see the [navigationRequestStrategy](#navigation-request-strategy) and [applicationMaxAge](#application-max-age) sections.
 
 </div>
 
@@ -438,6 +438,12 @@ The `freshness` strategy usually results in more requests sent to the server, wh
 It is recommended that you use the default performance strategy whenever possible.
 
 </div>
+
+<a id="application-max-age"></a>
+
+### `applicationMaxAge`
+
+This optional property enables you to configure how long the service worker will cache any requests. Within the `maxAge`, files will be served from cache. Past it, all requests will be passed through to the network unless the application is offline, including asset and data requests.
 
 <!-- links -->
 
