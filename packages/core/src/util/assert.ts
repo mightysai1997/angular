@@ -106,11 +106,21 @@ export function throwError(msg: string, actual?: any, expected?: any, comparison
       (comparison == null ? '' : ` [Expected=> ${expected} ${comparison} ${actual} <=Actual]`));
 }
 
+function assertDomNodeFromAnotherFrame(node: any) {
+  if (node === null || typeof node !== 'object' || node instanceof Node) {
+    return false;
+  }
+
+  // nodeType exists but is inherited (probably from the Node interface of another frame)
+  return !node.hasOwnProperty('nodeType') && node.nodeType;
+}
+
 export function assertDomNode(node: any): asserts node is Node {
   // If we're in a worker, `Node` will not be defined.
   if (!(typeof Node !== 'undefined' && node instanceof Node) &&
       !(typeof node === 'object' && node != null &&
-        node.constructor.name === 'WebWorkerRenderNode')) {
+        node.constructor.name === 'WebWorkerRenderNode') &&
+      !assertDomNodeFromAnotherFrame(node)) {
     throwError(`The provided value must be an instance of a DOM Node but got ${stringify(node)}`);
   }
 }
