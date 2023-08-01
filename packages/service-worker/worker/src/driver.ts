@@ -137,17 +137,6 @@ export class Driver implements Debuggable, UpdateSource {
         // As above, it's safe to take over from existing clients immediately, since the new SW
         // version will continue to serve the old application.
         await this.scope.clients.claim();
-
-        // Once all clients have been taken over, we can delete caches used by old versions of
-        // `@angular/service-worker`, which are no longer needed. This can happen in the background.
-        this.idle.schedule('activate: cleanup-old-sw-caches', async () => {
-          try {
-            await this.cleanupOldSwCaches();
-          } catch (err) {
-            // Nothing to do - cleanup failed. Just log it.
-            this.debugger.log(err as Error, 'cleanupOldSwCaches @ activate: cleanup-old-sw-caches');
-          }
-        });
       })());
 
       // Rather than wait for the first fetch event, which may not arrive until
