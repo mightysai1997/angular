@@ -182,6 +182,7 @@ export interface DirectiveProfile {
   lifecycle: LifecycleProfile;
   outputs: OutputProfile;
   changeDetection?: number;
+  id?: string;
 }
 
 export interface ElementProfile {
