@@ -1005,9 +1005,7 @@ const Zone: ZoneType = (function(global: any) {
     public zone: Zone;
 
     private _taskCounts:
-        {microTask: number,
-         macroTask: number,
-         eventTask: number} = {'microTask': 0, 'macroTask': 0, 'eventTask': 0};
+        {[key in TaskType]: number} = {'microTask': 0, 'macroTask': 0, 'eventTask': 0};
 
     private _parentDelegate: _ZoneDelegate|null;
 
