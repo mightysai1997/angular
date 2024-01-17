@@ -24,24 +24,24 @@ describe('ShadowCss, processRules', () => {
     });
 
     it('should capture a rule without body', () => {
-      expect(captureRules('a;')).toEqual([new CssRule('a', '')]);
+      expect(captureRules('a;')).toEqual([new CssRule('a', '', false)]);
     });
 
     it('should capture css rules with body', () => {
-      expect(captureRules('a {b}')).toEqual([new CssRule('a', 'b')]);
+      expect(captureRules('a {b}')).toEqual([new CssRule('a', 'b', true)]);
     });
 
     it('should capture css rules with nested rules', () => {
       expect(captureRules('a {b {c}} d {e}')).toEqual([
-        new CssRule('a', 'b {c}'),
-        new CssRule('d', 'e'),
+        new CssRule('a', 'b {c}', true),
+        new CssRule('d', 'e', true),
       ]);
     });
 
     it('should capture multiple rules where some have no body', () => {
       expect(captureRules('@import a ; b {c}')).toEqual([
-        new CssRule('@import a', ''),
-        new CssRule('b', 'c'),
+        new CssRule('@import a', '', false),
+        new CssRule('b', 'c', true),
       ]);
     });
   });
@@ -50,14 +50,14 @@ describe('ShadowCss, processRules', () => {
     it('should allow to change the selector while preserving whitespaces', () => {
       expect(processRules(
                  '@import a; b {c {d}} e {f}',
-                 (cssRule: CssRule) => new CssRule(cssRule.selector + '2', cssRule.content)))
+                 (cssRule: CssRule) => new CssRule(cssRule.selector + '2', cssRule.content, true)))
           .toEqual('@import a2; b2 {c {d}} e2 {f}');
     });
 
     it('should allow to change the content', () => {
-      expect(
-          processRules(
-              'a {b}', (cssRule: CssRule) => new CssRule(cssRule.selector, cssRule.content + '2')))
+      expect(processRules(
+                 'a {b}',
+                 (cssRule: CssRule) => new CssRule(cssRule.selector, cssRule.content + '2', true)))
           .toEqual('a {b2}');
     });
   });
