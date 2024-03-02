@@ -99,7 +99,7 @@ content of the `@empty` block displays when there are no items:
 @for (item of items; track item.name) {
   <li> {{ item.name }}</li>
 } @empty {
-  <li [attr.aria-hidden]="true"> There are no items.</li>
+  <li aria-hidden="true"> There are no items.</li>
 }
 ```
 
