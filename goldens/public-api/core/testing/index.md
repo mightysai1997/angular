@@ -110,6 +110,9 @@ export interface ModuleTeardownOptions {
 // @public
 export function resetFakeAsyncZone(): void;
 
+// @public
+export function setFakeBaseSystemTime(baseTimeInMillis: number): void;
+
 // @public (undocumented)
 export interface TestBed {
     // (undocumented)
