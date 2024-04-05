@@ -238,8 +238,6 @@ export class ScheduledComponentFixture<T> extends ComponentFixture<T> {
 
 interface TestAppRef {
   externalTestViews: Set<ViewRef>;
-  beforeRender: Subject<boolean>;
-  afterTick: Subject<void>;
 }
 
 /**
@@ -248,8 +246,6 @@ interface TestAppRef {
 export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
   private _subscriptions = new Subscription();
   private _autoDetect = inject(ComponentFixtureAutoDetect, {optional: true}) ?? false;
-  private afterTickSubscription: Subscription | undefined = undefined;
-  private beforeRenderSubscription: Subscription | undefined = undefined;
 
   initialize(): void {
     // TODO(atscott): Determine whether we can align this behavior with the zoneless fixture.
@@ -258,10 +254,10 @@ export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
     this._rejectWhenStablePromiseOnAppError = false;
 
     if (this._autoDetect) {
-      this.subscribeToAppRefEvents();
+      this._testAppRef.externalTestViews.add(this.componentRef.hostView);
     }
     this.componentRef.hostView.onDestroy(() => {
-      this.unsubscribeFromAppRefEvents();
+      this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
     });
     // Create subscriptions outside the NgZone so that the callbacks run outside
     // of NgZone.
@@ -298,9 +294,9 @@ export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
 
     if (autoDetect !== this._autoDetect) {
       if (autoDetect) {
-        this.subscribeToAppRefEvents();
+        this._testAppRef.externalTestViews.add(this.componentRef.hostView);
       } else {
-        this.unsubscribeFromAppRefEvents();
+        this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
       }
     }
 
@@ -308,44 +304,8 @@ export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
     this.detectChanges();
   }
 
-  private subscribeToAppRefEvents() {
-    this._ngZone.runOutsideAngular(() => {
-      this.afterTickSubscription = this._testAppRef.afterTick.subscribe(() => {
-        this.checkNoChanges();
-      });
-      this.beforeRenderSubscription = this._testAppRef.beforeRender.subscribe((isFirstPass) => {
-        try {
-          ɵdetectChangesInViewIfRequired(
-            (this.componentRef.hostView as any)._lView,
-            (this.componentRef.hostView as any).notifyErrorHandler,
-            isFirstPass,
-            false /** zoneless enabled */,
-          );
-        } catch (e: unknown) {
-          // If an error occurred during change detection, remove the test view from the application
-          // ref tracking. Note that this isn't exactly desirable but done this way because of how
-          // things used to work with `autoDetect` and uncaught errors. Ideally we would surface
-          // this error to the error handler instead and continue refreshing the view like
-          // what would happen in the application.
-          this.unsubscribeFromAppRefEvents();
-
-          throw e;
-        }
-      });
-      this._testAppRef.externalTestViews.add(this.componentRef.hostView);
-    });
-  }
-
-  private unsubscribeFromAppRefEvents() {
-    this.afterTickSubscription?.unsubscribe();
-    this.beforeRenderSubscription?.unsubscribe();
-    this.afterTickSubscription = undefined;
-    this.beforeRenderSubscription = undefined;
-    this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
-  }
-
   override destroy(): void {
-    this.unsubscribeFromAppRefEvents();
+    this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
     this._subscriptions.unsubscribe();
     super.destroy();
   }
