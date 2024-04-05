@@ -10,6 +10,8 @@ import {
   ApplicationRef,
   ChangeDetectorRef,
   ComponentRef,
+  ɵChangeDetectionScheduler,
+  ɵNotificationSource,
   DebugElement,
   ElementRef,
   getDebugNode,
@@ -18,7 +20,6 @@ import {
   RendererFactory2,
   ViewRef,
   ɵDeferBlockDetails as DeferBlockDetails,
-  ɵdetectChangesInViewIfRequired,
   ɵEffectScheduler as EffectScheduler,
   ɵgetDeferBlocks as getDeferBlocks,
   ɵNoopNgZone as NoopNgZone,
@@ -85,6 +86,9 @@ export abstract class ComponentFixture<T> {
   protected readonly _appErrorHandler = inject(TestBedApplicationErrorHandler);
   /** @internal */
   protected _rejectWhenStablePromiseOnAppError = true;
+  /** @internal */
+  protected abstract _autoDetect: boolean;
+  private readonly scheduler = inject(ɵChangeDetectionScheduler, {optional: true});
 
   // TODO(atscott): Remove this from public API
   ngZone = this._noZoneOptionIsSet ? null : this._ngZone;
@@ -97,6 +101,16 @@ export abstract class ComponentFixture<T> {
     this.componentInstance = componentRef.instance;
     this.nativeElement = this.elementRef.nativeElement;
     this.componentRef = componentRef;
+  }
+
+  initialize(): void {
+    if (this._autoDetect) {
+      this._testAppRef.externalTestViews.add(this.componentRef.hostView);
+      this.scheduler?.notify(ɵNotificationSource.ViewAttached);
+    }
+    this.componentRef.hostView.onDestroy(() => {
+      this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
+    });
   }
 
   /**
@@ -178,6 +192,7 @@ export abstract class ComponentFixture<T> {
    * Trigger component destruction.
    */
   destroy(): void {
+    this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
     if (!this._isDestroyed) {
       this.componentRef.destroy();
       this._isDestroyed = true;
@@ -192,9 +207,11 @@ export abstract class ComponentFixture<T> {
  * `ApplicationRef.isStable`, and `autoDetectChanges` cannot be disabled.
  */
 export class ScheduledComponentFixture<T> extends ComponentFixture<T> {
-  private _autoDetect = inject(ComponentFixtureAutoDetect, {optional: true}) ?? true;
+  /** @internal */
+  protected override _autoDetect = inject(ComponentFixtureAutoDetect, {optional: true}) ?? true;
 
-  initialize(): void {
+  override initialize(): void {
+    super.initialize();
     if (this._autoDetect) {
       this._appRef.attachView(this.componentRef.hostView);
     }
@@ -245,9 +262,11 @@ interface TestAppRef {
  */
 export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
   private _subscriptions = new Subscription();
-  private _autoDetect = inject(ComponentFixtureAutoDetect, {optional: true}) ?? false;
+  /** @internal */
+  override _autoDetect = inject(ComponentFixtureAutoDetect, {optional: true}) ?? false;
 
-  initialize(): void {
+  override initialize(): void {
+    super.initialize();
     // TODO(atscott): Determine whether we can align this behavior with the zoneless fixture.
     // This exists to keep the previous zone-based fixture behavior consistent with how it was before.
     // However, we currently feel that the zoneless fixture is doing the more correct thing.
@@ -259,6 +278,7 @@ export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
     this.componentRef.hostView.onDestroy(() => {
       this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
     });
+
     // Create subscriptions outside the NgZone so that the callbacks run outside
     // of NgZone.
     this._ngZone.runOutsideAngular(() => {
@@ -305,7 +325,6 @@ export class PseudoApplicationComponentFixture<T> extends ComponentFixture<T> {
   }
 
   override destroy(): void {
-    this._testAppRef.externalTestViews.delete(this.componentRef.hostView);
     this._subscriptions.unsubscribe();
     super.destroy();
   }
