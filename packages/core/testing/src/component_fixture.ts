@@ -201,9 +201,7 @@ export class ScheduledComponentFixture<T> extends ComponentFixture<T> {
           'Use `fixture.componentRef.hostView.changeDetectorRef.detectChanges()` instead.',
       );
     }
-    this._effectRunner.flush();
     this._appRef.tick();
-    this._effectRunner.flush();
   }
 
   override autoDetectChanges(autoDetect = true): void {

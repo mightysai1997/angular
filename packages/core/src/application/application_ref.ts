@@ -44,6 +44,7 @@ import {isPromise} from '../util/lang';
 import {NgZone} from '../zone/ng_zone';
 
 import {ApplicationInitStatus} from './application_init';
+import {EffectScheduler} from '../render3/reactivity/effect';
 
 /**
  * A DI token that provides a set of callbacks to
@@ -310,6 +311,7 @@ export class ApplicationRef {
   private readonly internalErrorHandler = inject(INTERNAL_APPLICATION_ERROR_HANDLER);
   private readonly afterRenderEffectManager = inject(AfterRenderEventManager);
   private readonly zonelessEnabled = inject(ZONELESS_ENABLED);
+  private readonly rootEffectScheduler = inject(EffectScheduler);
 
   /** @internal */
   dirtyFlags = ApplicationRefDirtyFlags.None;
@@ -588,6 +590,11 @@ export class ApplicationRef {
     // Some notifications to run a `tick` will only trigger render hooks. so we can potentially
     // skip refreshing views.
     while (this.dirtyFlags !== ApplicationRefDirtyFlags.None && runs < MAXIMUM_REFRESH_RERUNS) {
+      if (this.dirtyFlags & ApplicationRefDirtyFlags.RootEffects) {
+        this.dirtyFlags &= ~ApplicationRefDirtyFlags.RootEffects;
+        this.rootEffectScheduler.flush();
+      }
+
       if (this.dirtyFlags & ApplicationRefDirtyFlags.ViewTreeAny) {
         const useGlobalCheck = Boolean(ApplicationRefDirtyFlags.ViewTreeGlobal);
         // Remove the ViewTree bits.
@@ -659,6 +666,8 @@ export class ApplicationRef {
             'that afterRender hooks always mark views for check.',
       );
     }
+
+    this.dirtyFlags = ApplicationRefDirtyFlags.None;
   }
 
   /**
@@ -810,6 +819,11 @@ export const enum ApplicationRefDirtyFlags {
    * After render hooks need to run.
    */
   AfterRender = 0b00001000,
+
+  /**
+   * Effects at the `ApplicationRef` level.
+   */
+  RootEffects = 0b00010000,
 }
 
 let whenStableStore: WeakMap<ApplicationRef, Promise<void>> | undefined;
