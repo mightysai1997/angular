@@ -1401,6 +1401,9 @@
     "name": "leaveViewLight"
   },
   {
+    "name": "listenToOutput"
+  },
+  {
     "name": "listenerInternal"
   },
   {

@@ -1665,6 +1665,9 @@
     "name": "leaveViewLight"
   },
   {
+    "name": "listenToOutput"
+  },
+  {
     "name": "locateDirectiveOrProvider"
   },
   {
