@@ -983,6 +983,9 @@ export class RoutesRecognized extends RouterEvent {
 }
 
 // @public
+export function runCanActivateGuardsSerially(guards: CanActivateFn[] | CanActivateChildFn[]): CanActivateFn | CanActivateChildFn;
+
+// @public
 export type RunGuardsAndResolvers = 'pathParamsChange' | 'pathParamsOrQueryParamsChange' | 'paramsChange' | 'paramsOrQueryParamsChange' | 'always' | ((from: ActivatedRouteSnapshot, to: ActivatedRouteSnapshot) => boolean);
 
 // @public
