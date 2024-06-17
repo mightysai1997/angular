@@ -319,6 +319,7 @@ export abstract class ComponentRef<C> {
     abstract get hostView(): ViewRef;
     abstract get injector(): Injector;
     abstract get instance(): C;
+    abstract listen(outputName: string, listenerFn: (eventArg: unknown) => unknown): () => void;
     abstract get location(): ElementRef;
     abstract onDestroy(callback: Function): void;
     abstract setInput(name: string, value: unknown): void;

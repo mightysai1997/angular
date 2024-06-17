@@ -34,6 +34,16 @@ export abstract class ComponentRef<C> {
   abstract setInput(name: string, value: unknown): void;
 
   /**
+   * Listen a given output on the component.
+   *
+   * @param outputName the output to listen to
+   * @param listenerFn the callback invoked everytime the output fires the event
+   *
+   * @returns a function to manually clean up the output listening
+   */
+  abstract listen(outputName: string, listenerFn: (eventArg: unknown) => unknown): () => void;
+
+  /**
    * The host or anchor element for this component instance.
    */
   abstract get location(): ElementRef;
