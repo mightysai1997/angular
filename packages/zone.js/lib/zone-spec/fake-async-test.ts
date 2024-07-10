@@ -435,7 +435,7 @@ class FakeAsyncTestZoneSpec implements ZoneSpec {
     };
   }
 
-  private _setTimeout(fn: Function, delay: number, args: any[], isTimer = true): number {
+  private _setTimeout(fn: Function, delay: number, args: any[], isTimer: boolean): number {
     let removeTimerFn = this._dequeueTimer(Scheduler.nextId);
     // Queue the callback and dequeue the timer on success and error.
     let cb = this._fnAndFlush(fn, {onSuccess: removeTimerFn, onError: removeTimerFn});
@@ -658,6 +658,7 @@ class FakeAsyncTestZoneSpec implements ZoneSpec {
               task.invoke,
               task.data!['delay']!,
               Array.prototype.slice.call((task.data as any)['args'], 2),
+              true,
             );
             break;
           case 'setImmediate':
@@ -665,6 +666,7 @@ class FakeAsyncTestZoneSpec implements ZoneSpec {
               task.invoke,
               0,
               Array.prototype.slice.call((task.data as any)['args'], 1),
+              true,
             );
             break;
           case 'setInterval':
@@ -705,7 +707,7 @@ class FakeAsyncTestZoneSpec implements ZoneSpec {
                 task.data!.isPeriodic = true;
               } else {
                 // not periodic, use setTimeout to simulate
-                task.data!['handleId'] = this._setTimeout(task.invoke, delay, callbackArgs);
+                task.data!['handleId'] = this._setTimeout(task.invoke, delay, callbackArgs, true);
               }
               break;
             }
@@ -785,7 +787,7 @@ class FakeAsyncTestZoneSpec implements ZoneSpec {
   }
 }
 
-let _fakeAsyncTestZoneSpec: any = null;
+let _fakeAsyncTestZoneSpec: FakeAsyncTestZoneSpec | null = null;
 
 type ProxyZoneSpecType = {
   setDelegate(delegateSpec: ZoneSpec): void;
@@ -825,11 +827,12 @@ export function resetFakeAsyncZone() {
  * {@example core/testing/ts/fake_async.ts region='basic'}
  *
  * @param fn
+ * @param flush when true, will flush pending timers at the end of the given fn
  * @returns The function wrapped to be executed in the fakeAsync zone
  *
  * @experimental
  */
-export function fakeAsync(fn: Function): (...args: any[]) => any {
+export function fakeAsync(fn: Function, flush = false): (...args: any[]) => any {
   // Not using an arrow function to preserve context passed from call site
   const fakeAsyncFn: any = function (this: unknown, ...args: any[]) {
     const ProxyZoneSpec = getProxyZoneSpec();
@@ -851,7 +854,7 @@ export function fakeAsync(fn: Function): (...args: any[]) => any {
           throw new Error('fakeAsync() calls can not be nested');
         }
 
-        _fakeAsyncTestZoneSpec = new FakeAsyncTestZoneSpec();
+        _fakeAsyncTestZoneSpec = new FakeAsyncTestZoneSpec() as FakeAsyncTestZoneSpec;
       }
 
       let res: any;
@@ -863,6 +866,10 @@ export function fakeAsync(fn: Function): (...args: any[]) => any {
         flushMicrotasks();
       } finally {
         proxyZoneSpec.setDelegate(lastProxyZoneSpec);
+      }
+
+      if (flush) {
+        _fakeAsyncTestZoneSpec.flush();
       }
 
       if (_fakeAsyncTestZoneSpec.pendingPeriodicTimers.length > 0) {

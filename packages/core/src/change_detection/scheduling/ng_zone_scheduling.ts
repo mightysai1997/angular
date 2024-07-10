@@ -29,7 +29,9 @@ import {
   ChangeDetectionScheduler,
   ZONELESS_SCHEDULER_DISABLED,
   ZONELESS_ENABLED,
+  SCHEDULE_IN_ROOT_ZONE,
 } from './zoneless_scheduling';
+import {SCHEDULE_IN_ROOT_ZONE_DEFAULT} from './flags';
 
 @Injectable({providedIn: 'root'})
 export class NgZoneChangeDetectionScheduler {
@@ -76,11 +78,14 @@ export const PROVIDED_NG_ZONE = new InjectionToken<boolean>(
 export function internalProvideZoneChangeDetection({
   ngZoneFactory,
   ignoreChangesOutsideZone,
+  scheduleInRootZone,
 }: {
   ngZoneFactory?: () => NgZone;
   ignoreChangesOutsideZone?: boolean;
+  scheduleInRootZone?: boolean;
 }): StaticProvider[] {
-  ngZoneFactory ??= () => new NgZone(getNgZoneOptions());
+  ngZoneFactory ??= () =>
+    new NgZone({...getNgZoneOptions(), scheduleInRootZone} as InternalNgZoneOptions);
   return [
     {provide: NgZone, useFactory: ngZoneFactory},
     {
@@ -117,6 +122,10 @@ export function internalProvideZoneChangeDetection({
     // Always disable scheduler whenever explicitly disabled, even if another place called
     // `provideZoneChangeDetection` without the 'ignore' option.
     ignoreChangesOutsideZone === true ? {provide: ZONELESS_SCHEDULER_DISABLED, useValue: true} : [],
+    {
+      provide: SCHEDULE_IN_ROOT_ZONE,
+      useValue: scheduleInRootZone ?? SCHEDULE_IN_ROOT_ZONE_DEFAULT,
+    },
   ];
 }
 
@@ -148,15 +157,18 @@ export function ngZoneApplicationErrorHandlerFactory() {
  */
 export function provideZoneChangeDetection(options?: NgZoneOptions): EnvironmentProviders {
   const ignoreChangesOutsideZone = options?.ignoreChangesOutsideZone;
+  const scheduleInRootZone = (options as any)?.scheduleInRootZone;
   const zoneProviders = internalProvideZoneChangeDetection({
     ngZoneFactory: () => {
       const ngZoneOptions = getNgZoneOptions(options);
+      ngZoneOptions.scheduleInRootZone = scheduleInRootZone;
       if (ngZoneOptions.shouldCoalesceEventChangeDetection) {
         performanceMarkFeature('NgZone_CoalesceEvent');
       }
       return new NgZone(ngZoneOptions);
     },
     ignoreChangesOutsideZone,
+    scheduleInRootZone,
   });
   return makeEnvironmentProviders([
     {provide: PROVIDED_NG_ZONE, useValue: true},

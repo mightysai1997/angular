@@ -68,3 +68,9 @@ export const PROVIDED_ZONELESS = new InjectionToken<boolean>(
 export const ZONELESS_SCHEDULER_DISABLED = new InjectionToken<boolean>(
   typeof ngDevMode === 'undefined' || ngDevMode ? 'scheduler disabled' : '',
 );
+
+// TODO(atscott): Remove in v19. Scheduler should just schedule wherever it is. If that's inside `fakeAsync`,
+// allow it to happen control when it gets flushed.
+export const SCHEDULE_IN_ROOT_ZONE = new InjectionToken<boolean>(
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'run changes outside zone in root' : '',
+);
