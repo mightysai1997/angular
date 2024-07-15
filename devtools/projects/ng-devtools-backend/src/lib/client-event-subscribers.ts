@@ -220,7 +220,7 @@ const getRoutes = (messageBus: MessageBus<Events>) => {
   );
   const rootInjector = (forest[0].resolutionPath ?? []).find((i) => i.name === 'Root');
   if (rootInjector) {
-    getRouterConfigFromRoot(messageBus)(rootInjector);
+    getRouterConfigFromRoot(messageBus, rootInjector);
   }
 };
 
@@ -395,17 +395,16 @@ const getInjectorProvidersCallbackUtil = (injector: SerializedInjector) => {
   return serializedProviderRecords;
 };
 
-const getRouterConfigFromRoot =
-  (messageBus: MessageBus<Events>) => (injector: SerializedInjector) => {
-    const serializedProviderRecords = getInjectorProvidersCallbackUtil(injector) || [];
-    const routerInstance = serializedProviderRecords.filter(
-      (provider) => provider.token === 'Router', // get the instance of router using token
-    );
-    const routerProvider = getProviderValue(injector, routerInstance[0]);
+const getRouterConfigFromRoot = (messageBus: MessageBus<Events>, injector: SerializedInjector) => {
+  const serializedProviderRecords = getInjectorProvidersCallbackUtil(injector) || [];
+  const routerInstance = serializedProviderRecords.filter(
+    (provider) => provider.token === 'Router', // get the instance of router using token
+  );
+  const routerProvider = getProviderValue(injector, routerInstance[0]);
 
-    const routes: Route[] = [parseRoutes(routerProvider)];
-    messageBus.emit('updateRouterTree', [routes]);
-  };
+  const routes: Route[] = [parseRoutes(routerProvider)];
+  messageBus.emit('updateRouterTree', [routes]);
+};
 
 const getInjectorProvidersCallback =
   (messageBus: MessageBus<Events>) => (injector: SerializedInjector) => {
