@@ -1003,7 +1003,7 @@ export interface InputSignalWithTransform<T, TransformT> extends Signal<T> {
     // (undocumented)
     [ɵINPUT_SIGNAL_BRAND_WRITE_TYPE]: TransformT;
     // (undocumented)
-    [SIGNAL]: InputSignalNode<T, TransformT>;
+    [SIGNAL]: ɵInputSignalNode<T, TransformT>;
 }
 
 // @public
@@ -1146,7 +1146,7 @@ export interface ModelOptions {
 // @public
 export interface ModelSignal<T> extends WritableSignal<T>, InputSignal<T>, OutputRef<T> {
     // (undocumented)
-    [SIGNAL]: InputSignalNode<T, T>;
+    [SIGNAL]: ɵInputSignalNode<T, T>;
 }
 
 // @public @deprecated
