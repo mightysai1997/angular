@@ -31,6 +31,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
+import {SIGNAL, Watch} from '@angular/core/primitives/signals';
 import {toObservable} from '@angular/core/rxjs-interop';
 import {TestBed} from '@angular/core/testing';
 import {bootstrapApplication} from '@angular/platform-browser';
@@ -443,6 +444,23 @@ describe('effects', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toBe('0');
+  });
+
+  it('should assign a debugName to the underlying watcher node when a debugName is provided', async () => {
+    @Component({
+      selector: 'test-cmp',
+      standalone: true,
+      template: '',
+    })
+    class Cmp {
+      effectRef = effect(() => {}, {debugName: 'TEST_DEBUG_NAME'});
+    }
+
+    const fixture = TestBed.createComponent(Cmp);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const effectRef = component.effectRef as unknown as {watcher: Watch};
+    expect(effectRef.watcher[SIGNAL].debugName).toBe('TEST_DEBUG_NAME');
   });
 
   describe('effects created in components should first run after ngOnInit', () => {
