@@ -166,7 +166,7 @@ describe('inject migration', () => {
       ``,
       `@Directive()`,
       `class MyDir {`,
-      `  private one = inject<ElementRef<HTMLElement>>(ElementRef<HTMLElement>);`,
+      `  private one = inject<ElementRef<HTMLElement>>(ElementRef);`,
       `  private two = inject<ElementRef<HTMLButtonElement> | ElementRef<HTMLSpanElement>>(ElementRef);`,
       `}`,
     ]);
@@ -503,6 +503,37 @@ describe('inject migration', () => {
     ]);
   });
 
+  it('should declare a variable if an injected parameter with modifiers is referenced in the constructor via shorthand assignment', async () => {
+    writeFile(
+      '/dir.ts',
+      [
+        `import { Directive, Inject, LOCALE_ID } from '@angular/core';`,
+        ``,
+        `@Directive()`,
+        `class MyDir {`,
+        `  constructor(@Inject(LOCALE_ID) locale: string) {`,
+        `    console.log({ locale });`,
+        `  }`,
+        `}`,
+      ].join('\n'),
+    );
+
+    await runMigration();
+
+    expect(tree.readContent('/dir.ts').split('\n')).toEqual([
+      `import { Directive, Inject, LOCALE_ID, inject } from '@angular/core';`,
+      ``,
+      `@Directive()`,
+      `class MyDir {`,
+      `  constructor() {`,
+      `    const locale = inject(LOCALE_ID);`,
+      ``,
+      `    console.log({ locale });`,
+      `  }`,
+      `}`,
+    ]);
+  });
+
   it('should not declare a variable in the constructor if the only references to the parameter are shadowed', async () => {
     writeFile(
       '/dir.ts',
@@ -824,7 +855,7 @@ describe('inject migration', () => {
     ]);
   });
 
-  it('should be able to opt into generating backwads-compatible constructors for a class with existing members', async () => {
+  it('should be able to opt into generating backwards-compatible constructors for a class with existing members', async () => {
     writeFile(
       '/dir.ts',
       [
@@ -870,7 +901,7 @@ describe('inject migration', () => {
     ]);
   });
 
-  it('should be able to opt into generating backwads-compatible constructors for a class that only has a constructor', async () => {
+  it('should be able to opt into generating backwards-compatible constructors for a class that only has a constructor', async () => {
     writeFile(
       '/dir.ts',
       [
@@ -1106,6 +1137,128 @@ describe('inject migration', () => {
       `  protected g = inject(G, { optional: true });`,
       `  h = inject(H, { optional: true });`,
       `}`,
+    ]);
+  });
+
+  it('should pick up the first non-literal type if a parameter has a union type', async () => {
+    writeFile(
+      '/dir.ts',
+      [
+        `import { Directive, Optional } from '@angular/core';`,
+        `import { Foo } from 'foo';`,
+        ``,
+        `@Directive()`,
+        `class MyDir {`,
+        `  constructor(@Optional() private foo: null | Foo) {}`,
+        `}`,
+      ].join('\n'),
+    );
+
+    await runMigration();
+
+    expect(tree.readContent('/dir.ts').split('\n')).toEqual([
+      `import { Directive, Optional, inject } from '@angular/core';`,
+      `import { Foo } from 'foo';`,
+      ``,
+      `@Directive()`,
+      `class MyDir {`,
+      `  private foo = inject(Foo, { optional: true });`,
+      `}`,
+    ]);
+  });
+
+  it('should unwrap forwardRef with an implicit return', async () => {
+    writeFile(
+      '/dir.ts',
+      [
+        `import { Directive, Inject, forwardRef } from '@angular/core';`,
+        ``,
+        `@Directive()`,
+        `class MyDir {`,
+        `  constructor(@Inject(forwardRef(() => Foo)) readonly foo: Foo) {}`,
+        `}`,
+        ``,
+        `@Directive()`,
+        `class Foo {}`,
+      ].join('\n'),
+    );
+
+    await runMigration();
+
+    expect(tree.readContent('/dir.ts').split('\n')).toEqual([
+      `import { Directive, Inject, forwardRef, inject } from '@angular/core';`,
+      ``,
+      `@Directive()`,
+      `class MyDir {`,
+      `  readonly foo = inject(Foo);`,
+      `}`,
+      ``,
+      `@Directive()`,
+      `class Foo {}`,
+    ]);
+  });
+
+  it('should unwrap forwardRef with an explicit return', async () => {
+    writeFile(
+      '/dir.ts',
+      [
+        `import { Directive, Inject, forwardRef } from '@angular/core';`,
+        ``,
+        `@Directive()`,
+        `class MyDir {`,
+        `  constructor(@Inject(forwardRef(() => {`,
+        `    return Foo;`,
+        `  })) readonly foo: Foo) {}`,
+        `}`,
+        ``,
+        `@Directive()`,
+        `class Foo {}`,
+      ].join('\n'),
+    );
+
+    await runMigration();
+
+    expect(tree.readContent('/dir.ts').split('\n')).toEqual([
+      `import { Directive, Inject, forwardRef, inject } from '@angular/core';`,
+      ``,
+      `@Directive()`,
+      `class MyDir {`,
+      `  readonly foo = inject(Foo);`,
+      `}`,
+      ``,
+      `@Directive()`,
+      `class Foo {}`,
+    ]);
+  });
+
+  it('should unwrap an aliased forwardRef', async () => {
+    writeFile(
+      '/dir.ts',
+      [
+        `import { Directive, Inject, forwardRef as aliasedForwardRef } from '@angular/core';`,
+        ``,
+        `@Directive()`,
+        `class MyDir {`,
+        `  constructor(@Inject(aliasedForwardRef(() => Foo)) readonly foo: Foo) {}`,
+        `}`,
+        ``,
+        `@Directive()`,
+        `class Foo {}`,
+      ].join('\n'),
+    );
+
+    await runMigration();
+
+    expect(tree.readContent('/dir.ts').split('\n')).toEqual([
+      `import { Directive, Inject, forwardRef as aliasedForwardRef, inject } from '@angular/core';`,
+      ``,
+      `@Directive()`,
+      `class MyDir {`,
+      `  readonly foo = inject(Foo);`,
+      `}`,
+      ``,
+      `@Directive()`,
+      `class Foo {}`,
     ]);
   });
 });
