@@ -67,14 +67,13 @@ export function patchTimer(window: any, setName: string, cancelName: string, nam
     (delegate: Function) =>
       function (self: any, args: any[]) {
         if (isFunction(args[0])) {
+          const callback = args[0];
           const options: TimerOptions = {
             isRefreshable: false,
             isPeriodic: nameSuffix === 'Interval',
             delay: nameSuffix === 'Timeout' || nameSuffix === 'Interval' ? args[1] || 0 : undefined,
             args: args,
           };
-
-          const callback = args[0];
           args[0] = function timer(this: unknown) {
             try {
               return callback.apply(this, arguments);

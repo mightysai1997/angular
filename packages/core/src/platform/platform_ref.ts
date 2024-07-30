@@ -80,13 +80,14 @@ export class PlatformRef {
     // as instantiating the module creates some providers eagerly.
     // So we create a mini parent injector that just contains the new NgZone and
     // pass that as parent to the NgModuleFactory.
-    const ngZone = getNgZone(
-      options?.ngZone,
-      getNgZoneOptions({
+    const scheduleInRootZone = (options as any)?.scheduleInRootZone;
+    const ngZone = getNgZone(options?.ngZone, {
+      ...getNgZoneOptions({
         eventCoalescing: options?.ngZoneEventCoalescing,
         runCoalescing: options?.ngZoneRunCoalescing,
       }),
-    );
+      scheduleInRootZone,
+    });
     // Note: Create ngZoneInjector within ngZone.run so that all of the instantiated services are
     // created within the Angular zone
     // Do not try to replace ngZone.run with ApplicationRef#run because ApplicationRef would then be
@@ -97,6 +98,7 @@ export class PlatformRef {
         ...internalProvideZoneChangeDetection({
           ngZoneFactory: () => ngZone,
           ignoreChangesOutsideZone,
+          scheduleInRootZone,
         }),
         {provide: ChangeDetectionScheduler, useExisting: ChangeDetectionSchedulerImpl},
       ]);

@@ -6,10 +6,10 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {SCHEDULE_IN_ROOT_ZONE_DEFAULT} from '../change_detection/scheduling/flags';
 import {RuntimeError, RuntimeErrorCode} from '../errors';
 import {EventEmitter} from '../event_emitter';
 import {scheduleCallbackWithRafRace} from '../util/callback_scheduler';
-import {global} from '../util/global';
 import {noop} from '../util/noop';
 
 import {AsyncStackTaggingZoneSpec} from './async-stack-tagging';
@@ -125,11 +125,18 @@ export class NgZone {
    */
   readonly onError: EventEmitter<any> = new EventEmitter(false);
 
-  constructor({
-    enableLongStackTrace = false,
-    shouldCoalesceEventChangeDetection = false,
-    shouldCoalesceRunChangeDetection = false,
+  constructor(options: {
+    enableLongStackTrace?: boolean;
+    shouldCoalesceEventChangeDetection?: boolean;
+    shouldCoalesceRunChangeDetection?: boolean;
   }) {
+    const {
+      enableLongStackTrace = false,
+      shouldCoalesceEventChangeDetection = false,
+      shouldCoalesceRunChangeDetection = false,
+      scheduleInRootZone = SCHEDULE_IN_ROOT_ZONE_DEFAULT,
+    } = options as InternalNgZoneOptions;
+
     if (typeof Zone == 'undefined') {
       throw new RuntimeError(
         RuntimeErrorCode.MISSING_ZONEJS,
@@ -165,6 +172,7 @@ export class NgZone {
       !shouldCoalesceRunChangeDetection && shouldCoalesceEventChangeDetection;
     self.shouldCoalesceRunChangeDetection = shouldCoalesceRunChangeDetection;
     self.callbackScheduled = false;
+    self.scheduleInRootZone = scheduleInRootZone;
     forkInnerZoneWithAngularBehavior(self);
   }
 
@@ -325,6 +333,11 @@ interface NgZonePrivate extends NgZone {
    *
    */
   shouldCoalesceRunChangeDetection: boolean;
+
+  /**
+   * Whether to schedule the coalesced change detection in the root zone
+   */
+  scheduleInRootZone: boolean;
 }
 
 function checkStable(zone: NgZonePrivate) {
@@ -378,7 +391,7 @@ function delayChangeDetectionForEvents(zone: NgZonePrivate) {
     return;
   }
   zone.callbackScheduled = true;
-  Zone.root.run(() => {
+  function scheduleCheckStable() {
     scheduleCallbackWithRafRace(() => {
       zone.callbackScheduled = false;
       updateMicroTaskStatus(zone);
@@ -386,7 +399,16 @@ function delayChangeDetectionForEvents(zone: NgZonePrivate) {
       checkStable(zone);
       zone.isCheckStableRunning = false;
     });
-  });
+  }
+  if (zone.scheduleInRootZone) {
+    Zone.root.run(() => {
+      scheduleCheckStable();
+    });
+  } else {
+    zone._outer.run(() => {
+      scheduleCheckStable();
+    });
+  }
   updateMicroTaskStatus(zone);
 }
 
@@ -564,9 +586,10 @@ function hasApplyArgsData(applyArgs: unknown, key: string) {
 
 // Set of options recognized by the NgZone.
 export interface InternalNgZoneOptions {
-  enableLongStackTrace: boolean;
-  shouldCoalesceEventChangeDetection: boolean;
-  shouldCoalesceRunChangeDetection: boolean;
+  enableLongStackTrace?: boolean;
+  shouldCoalesceEventChangeDetection?: boolean;
+  shouldCoalesceRunChangeDetection?: boolean;
+  scheduleInRootZone?: boolean;
 }
 
 export function getNgZone(

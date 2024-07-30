@@ -36,21 +36,16 @@ import {global} from './global';
  */
 export function scheduleCallbackWithRafRace(callback: Function): () => void {
   let executeCallback = true;
-  setTimeout(() => {
+  const executeOnceWrapper = () => {
     if (!executeCallback) {
       return;
     }
     executeCallback = false;
     callback();
-  });
+  };
+  setTimeout(executeOnceWrapper);
   if (typeof global['requestAnimationFrame'] === 'function') {
-    global['requestAnimationFrame'](() => {
-      if (!executeCallback) {
-        return;
-      }
-      executeCallback = false;
-      callback();
-    });
+    global['requestAnimationFrame'](executeOnceWrapper);
   }
 
   return () => {

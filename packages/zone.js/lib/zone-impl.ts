@@ -661,6 +661,11 @@ export declare interface TaskData {
 
   /** The target handler. */
   handle?: any;
+
+  /**
+   * Configures whether to ignore this task/timer in the pending timers count of `fakeAsync`.
+   */
+  ignoreTimerInFakeAsync?: boolean;
 }
 
 /**
