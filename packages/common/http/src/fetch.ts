@@ -26,6 +26,9 @@ const XSSI_PREFIX = /^\)\]\}',?\n/;
 
 const REQUEST_URL_HEADER = `X-Request-URL`;
 
+const USER_ABORT = 0;
+const TIMEOUT_ABORT = 1;
+
 /**
  * Determine an appropriate URL for the response, by checking either
  * response url or the X-Request-URL header.
@@ -60,10 +63,22 @@ export class FetchBackend implements HttpBackend {
   handle(request: HttpRequest<any>): Observable<HttpEvent<any>> {
     return new Observable((observer) => {
       const aborter = new AbortController();
+
       this.doRequest(request, aborter.signal, observer).then(noop, (error) =>
         observer.error(new HttpErrorResponse({error})),
       );
-      return () => aborter.abort();
+
+      if (request.timeout) {
+        this.ngZone.runOutsideAngular(() => {
+          setTimeout(() => {
+            if (!aborter.signal.aborted) {
+              aborter.abort(TIMEOUT_ABORT);
+            }
+          }, request.timeout);
+        });
+      }
+
+      return () => aborter.abort(USER_ABORT);
     });
   }
 
@@ -93,6 +108,14 @@ export class FetchBackend implements HttpBackend {
 
       response = await fetchPromise;
     } catch (error: any) {
+      if (signal.aborted && error === signal.reason) {
+        if (signal.reason === TIMEOUT_ABORT) {
+          error = new Error('Request timed out');
+        } else if (signal.reason === USER_ABORT) {
+          error = new Error('Request aborted');
+        }
+      }
+
       observer.error(
         new HttpErrorResponse({
           error,
