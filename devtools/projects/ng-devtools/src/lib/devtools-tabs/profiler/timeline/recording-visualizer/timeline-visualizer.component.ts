@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, Input} from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, effect, input, signal} from '@angular/core';
 import {ProfilerFrame} from 'protocol';
 
 import {BargraphNode} from '../record-formatter/bargraph-formatter';
@@ -50,30 +50,31 @@ export interface SelectedDirective {
     ExecutionDetailsComponent,
     DecimalPipe,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimelineVisualizerComponent {
-  @Input()
-  set visualizationMode(mode: VisualizationMode) {
-    this._visualizationMode = mode;
-    this.selectedEntry = null;
-    this.selectedDirectives = [];
-    this.parentHierarchy = [];
-  }
-  @Input({required: true}) frame!: ProfilerFrame;
-  @Input({required: true}) changeDetection!: boolean;
+  readonly visualizationMode = input<VisualizationMode>();
+  readonly frame = input.required<ProfilerFrame>();
+  readonly changeDetection = input.required<boolean>();
 
   cmpVisualizationModes = VisualizationMode;
 
-  selectedEntry: BargraphNode | FlamegraphNode | null = null;
-  selectedDirectives: SelectedDirective[] = [];
-  parentHierarchy: {name: string}[] = [];
+  readonly selectedNode = signal<SelectedEntry | null>(null);
+  readonly selectedEntry = computed(() => this.selectedNode()?.entry ?? null);
+  readonly selectedDirectives = computed(() => this.selectedNode()?.selectedDirectives ?? []);
+  readonly parentHierarchy = computed(() => this.selectedNode()?.parentHierarchy ?? []);
 
-  /** @internal */
-  _visualizationMode!: VisualizationMode;
+  constructor() {
+    effect(
+      () => {
+        const _ = this.visualizationMode();
+        this.selectedNode.set(null);
+      },
+      {allowSignalWrites: true},
+    );
+  }
 
-  handleNodeSelect({entry, parentHierarchy, selectedDirectives}: SelectedEntry): void {
-    this.selectedEntry = entry;
-    this.selectedDirectives = selectedDirectives;
-    this.parentHierarchy = parentHierarchy ?? [];
+  handleNodeSelect(selected: SelectedEntry): void {
+    this.selectedNode.set(selected);
   }
 }
