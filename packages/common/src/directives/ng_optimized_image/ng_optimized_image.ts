@@ -531,6 +531,10 @@ export class NgOptimizedImage implements OnInit, OnChanges, OnDestroy {
       }
     }
 
+    if (changes['placeholder'] && !changes['placeholder'].isFirstChange()) {
+      this.removePlaceholderOnLoad(this.imgElement);
+    }
+
     if (ngDevMode && changes['placeholder']?.currentValue && !this.isServer) {
       assertPlaceholderDimensions(this, this.imgElement);
     }
