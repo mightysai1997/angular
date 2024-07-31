@@ -196,7 +196,8 @@ describe('XhrBackend', () => {
     backend.handle(TEST_POST).subscribe({
       error: (error: HttpErrorResponse) => {
         expect(error instanceof HttpErrorResponse).toBeTrue();
-        expect(error.error instanceof Error).toBeTrue();
+        expect(error.error instanceof DOMException).toBeTrue();
+        expect((error.error as DOMException).name).toBe('TimeoutError');
         expect(error.url).toBe('/test');
         done();
       },

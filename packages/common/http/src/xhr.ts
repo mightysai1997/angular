@@ -259,7 +259,7 @@ export class HttpXhrBackend implements HttpBackend {
             onTimeout = (error: ProgressEvent) => {
               const {url} = partialFromXhr();
               const res = new HttpErrorResponse({
-                error,
+                error: new DOMException('Request timed out', 'TimeoutError'),
                 status: xhr.status || 0,
                 statusText: xhr.statusText || 'Request timeout',
                 url: url || undefined,

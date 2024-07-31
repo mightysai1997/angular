@@ -282,8 +282,8 @@ describe('FetchBackend', async () => {
     backend.handle(TEST_POST).subscribe({
       error: (err: HttpErrorResponse) => {
         expect(err instanceof HttpErrorResponse).toBe(true);
-        expect(err.error instanceof Error).toBeTrue();
-        expect(err.error.message).toBe('Request aborted');
+        expect(err.error instanceof DOMException).toBeTrue();
+        expect((err.error as DOMException).name).toBe('AbortError');
         done();
       },
     });
@@ -294,8 +294,8 @@ describe('FetchBackend', async () => {
     backend.handle(TEST_POST).subscribe({
       error: (err: HttpErrorResponse) => {
         expect(err instanceof HttpErrorResponse).toBe(true);
-        expect(err.error instanceof Error).toBeTrue();
-        expect(err.error.message).toBe('Request timed out');
+        expect(err.error instanceof DOMException).toBeTrue();
+        expect((err.error as DOMException).name).toBe('TimeoutError');
         done();
       },
     });
@@ -509,11 +509,11 @@ export class MockFetchFactory extends FetchFactory {
   }
 
   mockAbortEvent() {
-    this.reject(new Error('Request aborted'));
+    this.reject(new DOMException('', 'AbortError'));
   }
 
   mockTimeoutEvent() {
-    this.reject(new Error('Request timed out'));
+    this.reject(new DOMException('', 'TimeoutError'));
   }
 
   resetFetchPromise() {
