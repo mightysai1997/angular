@@ -115,6 +115,9 @@ export class ChangeDetectionSchedulerImpl implements ChangeDetectionScheduler {
       // to make listener callbacks work correctly with `OnPush` components.
       return;
     }
+
+    let force = false;
+
     switch (source) {
       case NotificationSource.DebugApplyChanges:
       case NotificationSource.DeferBlockStateUpdate:
@@ -123,6 +126,11 @@ export class ChangeDetectionSchedulerImpl implements ChangeDetectionScheduler {
       case NotificationSource.Listener:
       case NotificationSource.SetInput: {
         this.shouldRefreshViews = true;
+        break;
+      }
+      case NotificationSource.CustomElement: {
+        this.shouldRefreshViews = true;
+        force = true;
         break;
       }
       case NotificationSource.ViewDetachedFromDOM:
@@ -136,7 +144,7 @@ export class ChangeDetectionSchedulerImpl implements ChangeDetectionScheduler {
       }
     }
 
-    if (!this.shouldScheduleTick()) {
+    if (!this.shouldScheduleTick(force)) {
       return;
     }
 
@@ -166,8 +174,8 @@ export class ChangeDetectionSchedulerImpl implements ChangeDetectionScheduler {
     }
   }
 
-  private shouldScheduleTick(): boolean {
-    if (this.disableScheduling) {
+  private shouldScheduleTick(force: boolean): boolean {
+    if (this.disableScheduling && !force) {
       return false;
     }
     // already scheduled or running
