@@ -18,8 +18,9 @@ export interface DocsCodeToken extends CodeToken {
 
 // Capture group 1: all attributes on the opening tag
 // Capture group 2: all content between the open and close tags
-const singleFileSelfClosingCodeRule = /^\s*<docs-code\s([^>]*)((?:.(?!\/>))*)\/>/s;
-const singleFileCodeRule = /^\s*<docs-code\s([^>]*)>((?:.(?!\/docs-code))*)<\/docs-code>/s;
+const singleFileSelfClosingCodeRule = /^\s*<docs-code\s*(.*?)\s*(?=\/>)\/>\s*$/;
+const singleFileCodeRule =
+  /^\s*<docs-code((?:\s+[\w-]+(?:="[^"]*"|='[^']*'|=\S*)>?)*)\s*(?:\/>|(.*?)<\/docs-code>)/s;
 
 const pathRule = /path="([^"]*)"/;
 const headerRule = /header="([^"]*)"/;
@@ -41,7 +42,6 @@ export const docsCodeExtension = {
     const code = singleFileCodeRule.exec(src);
     const selfClosingCode = singleFileSelfClosingCodeRule.exec(src);
     const match = selfClosingCode ?? code;
-
     if (match) {
       const attr = match[1].trim();
 
@@ -55,7 +55,7 @@ export const docsCodeExtension = {
       const visibleRegion = visibleRegionRule.exec(attr);
       const preview = previewRule.exec(attr) ? true : false;
 
-      let code = match[2].trim();
+      let code = match[2]?.trim() ?? '';
       if (path && path[1]) {
         code = loadWorkspaceRelativeFile(path[1]);
         // Remove ESLint Comments
