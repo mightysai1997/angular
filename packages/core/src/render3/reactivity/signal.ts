@@ -65,6 +65,11 @@ export interface CreateSignalOptions<T> {
    * A comparison function which defines equality for signal values.
    */
   equal?: ValueEqualityFn<T>;
+
+  /**
+   * A debug name for the signal. Used in Angular DevTools to identify the signal.
+   */
+  debugName?: string;
 }
 
 /**
@@ -84,6 +89,9 @@ export function signal<T>(initialValue: T, options?: CreateSignalOptions<T>): Wr
   if (ngDevMode) {
     signalFn.toString = () => `[Signal: ${signalFn()}]`;
   }
+
+  node.debugName = options?.debugName;
+
   return signalFn as WritableSignal<T>;
 }
 
