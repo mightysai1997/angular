@@ -20,6 +20,7 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
+import {NgTemplateOutlet} from '@angular/common';
 
 import {WINDOW} from '../../providers/index';
 import {ClickOutside} from '../../directives/index';
@@ -34,6 +35,7 @@ import {Router, RouterLink} from '@angular/router';
 import {filter, fromEvent} from 'rxjs';
 import {AlgoliaIcon} from '../algolia-icon/algolia-icon.component';
 import {RelativeLink} from '../../pipes/relative-link.pipe';
+import {SearchResult} from '../../interfaces';
 
 @Component({
   selector: 'docs-search-dialog',
@@ -47,6 +49,7 @@ import {RelativeLink} from '../../pipes/relative-link.pipe';
     AlgoliaIcon,
     RelativeLink,
     RouterLink,
+    NgTemplateOutlet,
   ],
   templateUrl: './search-dialog.component.html',
   styleUrls: ['./search-dialog.component.scss'],
@@ -102,6 +105,19 @@ export class SearchDialog implements OnDestroy {
           this.keyManager.onKeydown(event);
         }
       });
+  }
+
+  splitMarkedText(snippet: string): Array<{highlight: boolean; text: string}> {
+    const parts: Array<{highlight: boolean; text: string}> = [];
+    while (snippet.indexOf('<ɵ>') !== -1) {
+      const beforeMatch = snippet.substring(0, snippet.indexOf('<ɵ>'));
+      const match = snippet.substring(snippet.indexOf('<ɵ>') + 3, snippet.indexOf('</ɵ>'));
+      parts.push({highlight: false, text: beforeMatch});
+      parts.push({highlight: true, text: match});
+      snippet = snippet.substring(snippet.indexOf('</ɵ>') + 4);
+    }
+    parts.push({highlight: false, text: snippet});
+    return parts;
   }
 
   ngOnDestroy(): void {
