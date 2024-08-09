@@ -140,7 +140,7 @@
     "shelljs": "^0.8.5",
     "source-map": "0.7.4",
     "source-map-support": "0.5.21",
-    "systemjs": "0.18.10",
+    "systemjs": "0.21.6",
     "terser": "^5.8.0",
     "todomvc-app-css": "^2.3.0",
     "todomvc-common": "^1.0.5",
